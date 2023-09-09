@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<body>
+<section id="main_view" style="display: none">
+    <h1 id="title"></h1>
+    <hr>
+    <p id="description"></p>
+    <p class="mono">🏠 Объект:</p>
+    <div class="custom-select">
+        <div></div>
+        <select id="objects-select" oninput="onTextInputChange()">
+            <option value="">Нажмите для выбора</option>
+        </select>
+    </div>
+
+    <p class="mono">👤 Контрагент:</p>
+    <input class="text_input" type=text oninput="onTextInputChange()">
+
+    <p class="mono">💵 Сумма:</p>
+    <input class="text_input" type=number oninput="onTextInputChange()">
+
+    <p class="mono">📝 Примечание:</p>
+    <textarea id="comment" class="text_input" rows="5" oninput="onTextInputChange()"></textarea>
+
+    <p></p>
+    <div id="button">
+    </div>
+
+</section>
+</body>
+<script>
+    let text_inputs = [];
+    $(".text_input").each(function (i, el) {
+        text_inputs.push(el);
+    });
+
+    let request = {};
+    $.when(getObjects(), getRequest()).then(() => {
+        let send_button = '<button disabled id="save_btn" onclick="sendRequest()">Отправить</button>'
+        let edit_button = '<button disabled id="save_btn" onclick="editRequest()">Отправить изменения</button>'
+
+        if (Object.keys(request).length === 0) {
+            $('#title').html('Запрос на согласование и оплату');
+            $('#description').html('Все поля ниже обязательны для заполнения. Нажмите на кнопку «Отправить», как будете готовы.<br><br>Кнопка будет неактивна, пока одно из полей не заполнено.');
+            $('#button').html($(send_button));
+
+        } else {
+            $('#title').html('Отправка изменений');
+            $('#objects-select').val(request.object);
+            text_inputs[0].value = request.counterparty;
+            text_inputs[1].value = request.money;
+            $('#comment').val(request.comment);
+            $('#description').html('Отредактируйте нужные поля ниже и нажмите на кнопку «Отправить изменения», как будете готовы.');
+            $('#button').html($(edit_button));
+        }
+
+        $('#main_view').fadeIn(100);
+    })
+
+
+    function areFieldsFilled() {
+        for (let element of text_inputs) {
+            let value = $(element).val();
+            if (!value) {
+                console.log(value);
+                return false;
+            }
+        }
+        return $('#objects-select').find(":selected").text() !== 'Нажмите для выбора';
+
+    }
+
+
+    function onTextInputChange() {
+        if (areFieldsFilled()) {
+            $('#save_btn').prop('disabled', false);
+        } else {
+            $('#save_btn').prop('disabled', true);
+        }
+    }
+
+    function getObjects() {
+        return ajax('/getObjects', {}, (result) => {
+            let objects_select = $('#objects-select');
+            result.objects.forEach((object) => {
+                let r = $('<option value="' + object + '">' + object + '</option>');
+                objects_select.append(r);
+            });
+        });
+    }
+
+
+    function editRequest() {
+        $('#save_btn').prop('disabled', true);
+
+        let data = {
+            request_id: request.id,
+            request: {
+                object: $('#objects-select').find(":selected").text(),
+                counterparty: text_inputs[0].value,
+                money: text_inputs[1].value,
+                comment: $(text_inputs[2]).val(),
+            }
+        };
+
+        return ajax('/editRequest', data, () => {
+            Telegram.WebApp.showAlert('✅ Вы успешно отправили отредактированный запрос на согласование и оплату.\n\nФорма будет закрыта.');
+            Telegram.WebApp.close();
+        });
+    }
+
+    function sendRequest() {
+        $('#save_btn').prop('disabled', true);
+
+        let data = {
+            request: {
+                object: $('#objects-select').find(":selected").text(),
+                counterparty: text_inputs[0].value,
+                money: text_inputs[1].value,
+                comment: $(text_inputs[2]).val(),
+            }
+        };
+
+        return ajax('/sendRequest', data, () => {
+            Telegram.WebApp.showAlert('✅ Вы успешно отправили запрос на согласование и оплату. Ожидайте ответ от бота.\nФорма будет закрыта.');
+            Telegram.WebApp.close();
+        });
+    }
+</script>
+</html>

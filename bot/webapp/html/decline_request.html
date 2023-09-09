@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<body>
+<section id="main_view" style="display: none">
+    <h1>Согласование и оплата</h1>
+    <hr>
+    <p>Заполните причину отказа и нажмите на кнопку ниже.</p>
+    <p class="mono">Причина отказа:</p>
+    <textarea id="reason" type="text" class="text_input" rows="8" oninput="areFieldsFilled()"></textarea>
+    <p></p>
+    <button disabled id="save_btn" onclick="declineRequest()">
+        🚫 Отклонить
+    </button>
+</section>
+</body>
+<script>
+    let request = {};
+    $.when(getRequest()).done(() => {
+        $('#main_view').fadeIn(100);
+    })
+
+    function areFieldsFilled() {
+        if (!$('#reason').val()) {
+            $('#save_btn').prop('disabled', true);
+        } else {
+            $('#save_btn').prop('disabled', false);
+        }
+    }
+
+
+    function declineRequest() {
+        $('#save_btn').prop('disabled', true);
+        let data = {
+            reason: $('#reason').val(),
+            request_id: request.id
+        }
+        return ajax('/declineRequest', data, () => {
+            Telegram.WebApp.showAlert('✅ Вы успешно отклонили запрос.\nФорма будет закрыта.');
+            Telegram.WebApp.close();
+        });
+    }
+</script>
+</html>

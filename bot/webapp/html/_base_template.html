@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="MobileOptimized" content="176"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="robots" content="noindex,nofollow"/>
+    <script src="https://telegram.org/js/telegram-web-app.js?1"></script>
+    <script>
+        function setThemeClass() {
+            document.documentElement.className = Telegram.WebApp.colorScheme;
+        }
+
+        Telegram.WebApp.onEvent('themeChanged', setThemeClass);
+        setThemeClass();
+
+    </script>
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+</head>
+<body style="visibility: hidden;">
+<section>
+</section>
+<script src="https://webappcontent.telegram.org/js/jquery.min.js"></script>
+<script>
+    Telegram.WebApp.ready();
+
+    var initData = Telegram.WebApp.initData || '';
+    var initDataUnsafe = Telegram.WebApp.initDataUnsafe || {};
+    var webAppUser = Telegram.WebApp.WebAppUser;
+
+    function ajax(path, data, on_success) {
+        if (!initDataUnsafe.query_id) {
+            alert('WebViewQueryId not defined');
+            return;
+        }
+
+        data._auth = initData;
+        data._unsafe_data = initDataUnsafe;
+
+        return $.ajax(path, {
+            type: 'POST',
+            data: data,
+            dataType: 'json',
+            success: function (result) {
+                on_success(result);
+            },
+            error: function (xhr) {
+                Telegram.WebApp.showAlert('❌ Ошибка. Обратитесь к администратору.');
+                Telegram.WebApp.close();
+            }
+        });
+    }
+
+    function initApp() {
+        ajax('/initApp', {}, () => {
+        })
+    }
+
+    Telegram.WebApp.onEvent('themeChanged', function () {
+        $('#theme_data').html(JSON.stringify(Telegram.WebApp.themeParams, null, 2));
+    });
+
+    if (initDataUnsafe.query_id && initData) {
+        $.ajax('/checkData', {
+            type: 'POST',
+            data: {_auth: initData},
+            dataType: 'json',
+            success: function (result) {
+                if (result.ok) {
+                    //$('#webview_data_status').html('Hash is correct').addClass('ok');
+                } else {
+                    //$('#webview_data_status').html(result.error).addClass('err');
+                }
+            },
+            error: function (xhr) {
+                //$('#webview_data_status').html('Server error').addClass('err');
+            }
+        });
+    }
+    $('body').css('visibility', '');
+
+    function round(val, d) {
+        var k = Math.pow(10, d || 0);
+        return Math.round(val * k) / k;
+    }
+
+    function setViewportData() {
+        $('.viewport_border').attr('text', window.innerWidth + ' x ' + round(Telegram.WebApp.viewportHeight, 2));
+        $('.viewport_stable_border').attr('text', window.innerWidth + ' x ' + round(Telegram.WebApp.viewportStableHeight, 2) + ' | is_expanded: ' + (Telegram.WebApp.isExpanded ? 'true' : 'false'));
+    }
+
+
+    Telegram.WebApp.onEvent('viewportChanged', setViewportData);
+    setViewportData();
+    initApp();
+
+    function getRequest() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const request_id = urlParams.get('request_id');
+        if (!initDataUnsafe.query_id) {
+            alert('WebViewQueryId not defined');
+            return;
+        }
+        if (!request_id) {
+            return;
+        }
+        return $.ajax('/getRequestById', {
+            type: 'POST',
+            data: {
+                _auth: initData,
+                _unsafe_data: initDataUnsafe,
+                request_id: request_id,
+            },
+            dataType: 'json',
+            success: function (result) {
+                console.log(result)
+                if (result) {
+                    request = result
+                } else {
+                    alert('а error');
+                }
+            },
+            error: function (xhr) {
+                //$('button').prop('disabled', false);
+                //$('#btn_status').text('Server error').addClass('err').show();
+
+            }
+        });
+    }
+
+    $("textarea").keypress(function (e) {
+        if (e.which === 13 && !e.shiftKey) {
+            e.preventDefault();
+
+            $(this).blur()
+        }
+    });
+
+
+    $("input").on("change", function () {
+        $(this).blur();
+    });
+
+
+    // INSERT SCRIPT HERE (this line is for templates.py)
+
+
+</script>
+</body>
+</html>
+<!-- page generated in 1.11ms -->

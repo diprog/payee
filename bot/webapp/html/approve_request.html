@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<body>
+<section id="main_view" style="display: none">
+    <h1 id="title"></h1>
+    <hr>
+    <p id="description"></p>
+
+    <p class="mono">От кого (юр. лицо, счет):</p>
+    <select id="check-select" onchange="onSelectChange()">
+        <option value="">Выберите из списка</option>
+    </select>
+
+    <p class="mono">Кто оплатит:</p>
+    <select id="payer-select" onchange="onSelectChange()">
+        <option value="">Выберите из списка</option>
+    </select>
+
+    <p></p>
+
+    <button disabled id="save_btn" onclick="approveRequest()">
+        ✅ Согласовать
+    </button>
+</section>
+</body>
+<script>
+    let request = {};
+    let owner = null;
+    $.when(getApprovalInitData(), getRequest()).done(() => {
+        console.log(request);
+        onSelectChange();
+        $('#main_view').fadeIn(100);
+    })
+
+    function onSelectChange() {
+        let empty_text = 'Выберите из списка';
+        if ($('#check-select').find(":selected").text() === empty_text || $('#payer-select').find(":selected").text() === empty_text) {
+            $('#save_btn').prop('disabled', true);
+        } else {
+            $('#save_btn').prop('disabled', false);
+        }
+        if ($('#payer-select').find(":selected").text() === 'Оплачу сам') {
+            $('#title').html('Согласование и оплата');
+            $('#save_btn').html('✅ Согласовано и оплачено');
+            $('#description').html('Произведите оплату по заявке и нажмите на кнопку «Согласовано и оплачено», как будете готовы.');
+        } else {
+            $('#title').html('Согласование');
+            $('#save_btn').html('✅ Согласовать');
+            $('#description').html('Выберите значения в полях ниже и нажмите на кнопку «Согласовать», как будете готовы.');
+        }
+    }
+
+
+    function getApprovalInitData() {
+        return ajax('/getApprovalSelectors', {}, (result) => {
+            result.check.forEach((option) => {
+                let r = $('<option value="' + option + '">' + option + '</option>');
+                $('#check-select').append(r);
+            })
+
+            result.owners.forEach((option) => {
+                let r = $('<option value="' + option + '">' + option + '</option>');
+                $('#payer-select').append(r);
+            })
+
+            owner = result.owner;
+        });
+    }
+
+    function approveRequest() {
+        let payer_name = $('#payer-select').find(":selected").text();
+        $('#save_btn').prop('disabled', true);
+        let data = {
+            check: $('#check-select').find(":selected").text(),
+            request_id: request.id,
+            payer_name: $('#payer-select').find(":selected").text(),
+        }
+        return ajax('/approveRequest', data, () => {
+            if (payer_name === 'Оплачу сам') {
+                Telegram.WebApp.showAlert('✅ Вы успешно согласовали и оплатили запрос.\nФорма будет закрыта.');
+            } else {
+                Telegram.WebApp.showAlert('✅ Вы успешно согласовали запрос.\nЗаявка на оплату отправлена выбранному вами сотруднику.\nФорма будет закрыта.');
+            }
+
+            Telegram.WebApp.close();
+        });
+    }
+</script>
+</html>
